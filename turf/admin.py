@@ -1,15 +1,33 @@
 from django.contrib import admin
-from .models import TurfSpot, PitchType, GameTime, Purpose, Facility
+from .models import Turf, PitchType, GameTime, Purpose, Facility, TurfImage
 
 
-@admin.register(TurfSpot)
-class TurfSpotAdmin(admin.ModelAdmin):
-    list_display = ('name', 'pitch_type', 'price_per_hour', 'location')
-    search_fields = ('name', 'location')
-    list_filter = ('pitch_type', 'game_time', 'purpose')
+class TurfImageInline(admin.TabularInline):  # or StackedInline
+    model = TurfImage
+    extra = 1
 
 
-admin.site.register(PitchType)
-admin.site.register(GameTime)
-admin.site.register(Purpose)
-admin.site.register(Facility)
+@admin.register(Turf)
+class TurfAdmin(admin.ModelAdmin):
+    list_display = ("name", "pitch_type", "price_per_hour", "location", "created_at")
+    inlines = [TurfImageInline]
+
+
+@admin.register(PitchType)
+class PitchTypeAdmin(admin.ModelAdmin):
+    list_display = ("name",)
+
+
+@admin.register(GameTime)
+class GameTimeAdmin(admin.ModelAdmin):
+    list_display = ("name",)
+
+
+@admin.register(Purpose)
+class PurposeAdmin(admin.ModelAdmin):
+    list_display = ("name",)
+
+
+@admin.register(Facility)
+class FacilityAdmin(admin.ModelAdmin):
+    list_display = ("name",)

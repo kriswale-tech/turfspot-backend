@@ -1,17 +1,27 @@
 from rest_framework import viewsets
-from .models import TurfSpot, PitchType, GameTime, Purpose, Facility
+from django_filters.rest_framework import DjangoFilterBackend
+from .models import Turf, PitchType, GameTime, Purpose, Facility
 from .serializers import (
-    TurfSpotSerializer,
+    TurfSerializer,
+    TurfListSerializer,
     PitchTypeSerializer,
     GameTimeSerializer,
     PurposeSerializer,
     FacilitySerializer
 )
+from .filters import TurfFilter
 
 
-class TurfSpotViewSet(viewsets.ModelViewSet):
-    queryset = TurfSpot.objects.all()
-    serializer_class = TurfSpotSerializer
+
+class TurfViewSet(viewsets.ModelViewSet):
+    queryset = Turf.objects.all()
+    serializer_class = TurfSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TurfFilter
+    def get_serializer_class(self):
+        if self.action == "list":
+            return TurfListSerializer
+        return TurfSerializer
 
 
 class PitchTypeViewSet(viewsets.ModelViewSet):

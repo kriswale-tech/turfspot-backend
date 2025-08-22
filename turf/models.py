@@ -29,7 +29,7 @@ class Facility(models.Model):
         return self.name
 
 
-class TurfSpot(models.Model):
+class Turf(models.Model):
     name = models.CharField(max_length=100)
     pitch_type = models.ForeignKey(PitchType, on_delete=models.SET_NULL, null=True)
     price_per_hour = models.IntegerField()
@@ -44,12 +44,15 @@ class TurfSpot(models.Model):
 
     whatsapp_number = models.CharField(max_length=20, blank=True, null=True)
     call_number = models.CharField(max_length=20, blank=True, null=True)
-
-    main_image = models.ImageField(upload_to='turf_images/', blank=True, null=True)
-    image1 = models.ImageField(upload_to='turf_images/', blank=True, null=True)
-    image2 = models.ImageField(upload_to='turf_images/', blank=True, null=True)
-    image3 = models.ImageField(upload_to='turf_images/', blank=True, null=True)
-    image4 = models.ImageField(upload_to='turf_images/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name
+
+
+class TurfImage(models.Model):
+    turf = models.ForeignKey(Turf, on_delete=models.CASCADE, related_name="images")
+    image = models.ImageField(upload_to="turfs/")
+
+    def __str__(self):
+        return f"Image for {self.turf.name}"

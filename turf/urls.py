@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    TurfSpotViewSet,
+    TurfViewSet,
     PitchTypeViewSet,
     GameTimeViewSet,
     PurposeViewSet,
@@ -9,7 +9,7 @@ from .views import (
 )
 
 router = DefaultRouter()
-router.register(r'turfspots', TurfSpotViewSet)
+router.register(r'turfs', TurfViewSet)
 router.register(r'pitchtypes', PitchTypeViewSet)
 router.register(r'gametimes', GameTimeViewSet)
 router.register(r'purposes', PurposeViewSet)
