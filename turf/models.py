@@ -1,4 +1,5 @@
 from django.db import models
+from cloudinary.models import CloudinaryField
 
 
 class PitchType(models.Model):
@@ -52,7 +53,8 @@ class Turf(models.Model):
 
 class TurfImage(models.Model):
     turf = models.ForeignKey(Turf, on_delete=models.CASCADE, related_name="images")
-    image = models.ImageField(upload_to="turfs/")
+    image = CloudinaryField("image")  # stored in Cloudinary
+    uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Image for {self.turf.name}"
+        return f"{self.turf.name} - {self.image.url if self.image else 'No image'}"
