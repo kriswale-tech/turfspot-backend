@@ -43,10 +43,11 @@ class CallNumber(models.Model):
 
 class Turf(models.Model):
     name = models.CharField(max_length=100)
+    pitch_description = models.TextField(blank=True, null=True)
     pitch_type = models.ForeignKey(PitchType, on_delete=models.SET_NULL, null=True)
     price_per_hour = models.IntegerField()
 
-    game_time = models.ForeignKey(GameTime, on_delete=models.SET_NULL, null=True)
+    game_time = models.TextField(blank=True, null=True, help_text="Enter opening hours, e.g.:\n🔒 Open Monday - Friday (6AM - 11PM)\nOpen Saturdays & Sundays (8AM - 11PM)")
     purposes = models.ManyToManyField(Purpose, blank=True)
     facilities = models.ManyToManyField(Facility, blank=True)
     location = models.CharField(max_length=255, blank=True, null=True)

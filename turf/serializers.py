@@ -50,7 +50,7 @@ class CallNumberSerializer(serializers.ModelSerializer):
 
 class TurfSerializer(serializers.ModelSerializer):
     pitch_type = PitchTypeSerializer(read_only=True)
-    game_time = GameTimeSerializer(read_only=True)
+    game_time = serializers.CharField()
     purposes = PurposeSerializer(many=True, read_only=True)
     facilities = FacilitySerializer(many=True, read_only=True)
     whatsapp_numbers = WhatsappNumberSerializer(many=True, read_only=True)
@@ -60,7 +60,7 @@ class TurfSerializer(serializers.ModelSerializer):
     class Meta:
         model = Turf
         fields = [
-            "id", "name", "pitch_type", "price_per_hour",
+            "id", "name", "pitch_description", "pitch_type", "price_per_hour",
             "game_time", "purposes", "facilities",
             "location", "map_link", "whatsapp_numbers",
             "call_numbers", "images", "uploaded_images", "created_at"
