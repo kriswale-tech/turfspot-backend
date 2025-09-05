@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Turf, PitchType, GameTime, Purpose, Facility, TurfImage
+from .models import Turf, PitchType, GameTime, Purpose, Facility, TurfImage, WhatsappNumber, CallNumber
 
 
 class PitchTypeSerializer(serializers.ModelSerializer):
@@ -37,27 +37,33 @@ class TurfImageSerializer(serializers.ModelSerializer):
         return obj.image.url if obj.image else None
 
 
+class WhatsappNumberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WhatsappNumber
+        fields = ["id", "number"]
+
+class CallNumberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CallNumber
+        fields = ["id", "number"]
+
+
 class TurfSerializer(serializers.ModelSerializer):
     pitch_type = PitchTypeSerializer(read_only=True)
     game_time = GameTimeSerializer(read_only=True)
-    purpose = PurposeSerializer(read_only=True)
+    purposes = PurposeSerializer(many=True, read_only=True)
     facilities = FacilitySerializer(many=True, read_only=True)
-
-    # Related images
+    whatsapp_numbers = WhatsappNumberSerializer(many=True, read_only=True)
+    call_numbers = CallNumberSerializer(many=True, read_only=True)
     images = TurfImageSerializer(many=True, read_only=True)
-
-    # For uploading multiple images in one request
-    uploaded_images = serializers.ListField(
-        child=serializers.ImageField(), write_only=True, required=False
-    )
-
+    uploaded_images = serializers.ListField(child=serializers.ImageField(), write_only=True, required=False)
     class Meta:
         model = Turf
         fields = [
             "id", "name", "pitch_type", "price_per_hour",
-            "game_time", "purpose", "facilities",
-            "location", "map_link", "whatsapp_number",
-            "call_number", "images", "uploaded_images", "created_at"
+            "game_time", "purposes", "facilities",
+            "location", "map_link", "whatsapp_numbers",
+            "call_numbers", "images", "uploaded_images", "created_at"
         ]
 
     def create(self, validated_data):

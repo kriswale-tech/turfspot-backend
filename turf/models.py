@@ -30,21 +30,29 @@ class Facility(models.Model):
         return self.name
 
 
+class WhatsappNumber(models.Model):
+    number = models.CharField(max_length=20, unique=True)
+    def __str__(self):
+        return self.number
+
+class CallNumber(models.Model):
+    number = models.CharField(max_length=20, unique=True)
+    def __str__(self):
+        return self.number
+
+
 class Turf(models.Model):
     name = models.CharField(max_length=100)
     pitch_type = models.ForeignKey(PitchType, on_delete=models.SET_NULL, null=True)
     price_per_hour = models.IntegerField()
 
     game_time = models.ForeignKey(GameTime, on_delete=models.SET_NULL, null=True)
-    purpose = models.ForeignKey(Purpose, on_delete=models.SET_NULL, null=True)
-
+    purposes = models.ManyToManyField(Purpose, blank=True)
     facilities = models.ManyToManyField(Facility, blank=True)
-
     location = models.CharField(max_length=255, blank=True, null=True)
     map_link = models.URLField(blank=True, null=True)
-
-    whatsapp_number = models.CharField(max_length=20, blank=True, null=True)
-    call_number = models.CharField(max_length=20, blank=True, null=True)
+    whatsapp_numbers = models.ManyToManyField(WhatsappNumber, blank=True)
+    call_numbers = models.ManyToManyField(CallNumber, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
