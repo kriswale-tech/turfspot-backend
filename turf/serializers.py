@@ -27,9 +27,14 @@ class FacilitySerializer(serializers.ModelSerializer):
 
 
 class TurfImageSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model = TurfImage
         fields = ["id", "image"]
+
+    def get_image(self, obj):
+        return obj.image.url if obj.image else None
 
 
 class TurfSerializer(serializers.ModelSerializer):
