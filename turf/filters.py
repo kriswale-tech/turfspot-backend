@@ -1,15 +1,19 @@
 import django_filters
-from .models import Turf, PitchType, GameTime, Purpose, Facility
+from .models import Turf, PitchType, Purpose, Facility
 
 
 class TurfFilter(django_filters.FilterSet):
-    # Sorting: Cheapest
+    # Sorting: Alphabetical, Location, Cheapest
     ordering = django_filters.OrderingFilter(
         fields=(
+            ('name', 'name'),
+            ('location', 'location'),
             ('price_per_hour', 'price_per_hour'),
         ),
         field_labels={
-            'price_per_hour': 'Cheapest',
+            'name': 'Alphabetical',
+            'location': 'Location',
+            'price_per_hour': 'Cost',
         },
         label='Sort',
     )
@@ -23,16 +27,11 @@ class TurfFilter(django_filters.FilterSet):
     # Price per hour (range filter)
     price_per_hour = django_filters.RangeFilter(label="Price Per Hour")
 
-    # Game Time (FK)
-    game_time = django_filters.ModelChoiceFilter(
-        queryset=GameTime.objects.all(),
-        label="Game Time"
-    )
-
-    # Purpose (FK)
-    purpose = django_filters.ModelChoiceFilter(
+    # Purposes (M2M, allow multiple)
+    purposes = django_filters.ModelMultipleChoiceFilter(
+        field_name="purposes",
         queryset=Purpose.objects.all(),
-        label="Purpose"
+        label="Purposes"
     )
 
     # Facilities (M2M, allow multiple)
@@ -47,7 +46,6 @@ class TurfFilter(django_filters.FilterSet):
         fields = [
             "pitch_type",
             "price_per_hour",
-            "game_time",
-            "purpose",
+            "purposes",
             "facilities",
         ]
