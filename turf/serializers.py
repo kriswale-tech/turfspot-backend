@@ -62,7 +62,7 @@ class TurfSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "pitch_description", "pitch_type", "price_per_hour",
             "game_time", "purposes", "facilities",
-            "location", "map_link", "whatsapp_numbers",
+            "location", "latitude", "longitude", "map_link", "whatsapp_numbers",
             "call_numbers", "images", "uploaded_images", "created_at"
         ]
 
@@ -94,7 +94,7 @@ class TurfListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Turf
-        fields = ["id", "name", "pitch_type", "location", "image"]
+        fields = ["id", "name", "pitch_type", "location", "latitude", "longitude", "image"]
 
     def get_image(self, obj):
         # return first image (or None)

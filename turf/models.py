@@ -54,6 +54,8 @@ class Turf(models.Model):
     map_link = models.URLField(blank=True, null=True)
     whatsapp_numbers = models.ManyToManyField(WhatsappNumber, blank=True)
     call_numbers = models.ManyToManyField(CallNumber, blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

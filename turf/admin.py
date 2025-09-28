@@ -1,5 +1,8 @@
 from django.contrib import admin
 from .models import Turf, PitchType, GameTime, Purpose, Facility, TurfImage, WhatsappNumber, CallNumber
+from django import forms
+from django.utils.safestring import mark_safe
+from django.conf import settings
 
 
 class TurfImageInline(admin.TabularInline):  # or StackedInline
@@ -16,11 +19,70 @@ class CallNumberInline(admin.TabularInline):
     extra = 1
 
 
+class TurfAdminForm(forms.ModelForm):
+    class Meta:
+        model = Turf
+        fields = "__all__"
+
 @admin.register(Turf)
 class TurfAdmin(admin.ModelAdmin):
-    list_display = ("name", "pitch_type", "price_per_hour", "location", "created_at")
+    form = TurfAdminForm
+    list_display = ("name", "pitch_type", "price_per_hour", "location", "latitude", "longitude", "created_at")
     inlines = [TurfImageInline]
     #exclude = ("whatsapp_numbers", "call_numbers")
+
+    readonly_fields = ("location_map",)
+
+    fieldsets = (
+        (None, {
+            'fields': (
+                "name",
+                "pitch_description",
+                "pitch_type",
+                "price_per_hour",
+                "game_time",
+                "purposes",
+                "facilities",
+                "location",
+                "map_link",
+                "location_map",  # interactive map
+                "latitude",
+                "longitude",
+            )
+        }),
+    )
+
+    def location_map(self, obj):
+        lat = obj.latitude if obj and obj.latitude is not None else 5.6037  # Accra default
+        lng = obj.longitude if obj and obj.longitude is not None else -0.1870
+        api_key = getattr(settings, 'GOOGLE_MAPS_API_KEY', '')
+        html = f'''
+            <div>
+              <div id="turf-location-map" data-lat="{lat}" data-lng="{lng}" style="width:100%;height:360px;border:1px solid #ddd;border-radius:6px;"></div>
+              <small>Drag the marker or click on the map. It will update the Latitude/Longitude fields below.</small>
+              <script>
+                (function(){{
+                  function loadScript(src, onload){{
+                    if (document.querySelector('script[src^="https://maps.googleapis.com/maps/api/js"]')) {{ onload && onload(); return; }}
+                    var s = document.createElement('script');
+                    s.src = src; s.async = true; s.defer = true; s.onload = onload; document.head.appendChild(s);
+                  }}
+                  var init = function(){{ if (window.TurfLocationPicker) {{ window.TurfLocationPicker.init('#turf-location-map'); }} }};
+                  var key = '{api_key}';
+                  var url = 'https://maps.googleapis.com/maps/api/js' + (key ? ('?key=' + key) : '');
+                  loadScript(url, init);
+                }})();
+              </script>
+            </div>
+        '''
+        return mark_safe(html)
+
+    location_map.short_description = "Location (Map)"
+
+    class Media:
+        js = (
+            'turf/location_picker.js',
+        )
 
 
 @admin.register(PitchType)

@@ -5,7 +5,8 @@ from .views import (
     PitchTypeViewSet,
     GameTimeViewSet,
     PurposeViewSet,
-    FacilityViewSet
+    FacilityViewSet,
+    NearestTurfsView
 )
 
 router = DefaultRouter()
@@ -17,4 +18,5 @@ router.register(r'facilities', FacilityViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('turfs/nearest/', NearestTurfsView.as_view(), name='nearest-turfs'),
 ]
