@@ -43,6 +43,8 @@ class TurfAdmin(admin.ModelAdmin):
                 "game_time",
                 "purposes",
                 "facilities",
+                "whatsapp_numbers",
+                "call_numbers",
                 "location",
                 "map_link",
                 "location_map",  # interactive map
