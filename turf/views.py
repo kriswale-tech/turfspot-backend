@@ -59,23 +59,25 @@ class SuggestTurfsView(APIView):
             limit = int(request.query_params.get('limit', 8))
         except (TypeError, ValueError):
             limit = 8
-        names = list(Turf.objects.filter(name__icontains=q).values_list('name', flat=True).distinct()[:limit])
+        names = list(Turf.objects.filter(name__icontains=q).values('id', 'name').distinct()[:limit])
         locations_qs = Turf.objects.filter(location__icontains=q)
         locations = list(locations_qs.values_list('location', flat=True).distinct()[:limit])
-        names_from_location = list(locations_qs.values_list('name', flat=True).distinct()[:limit])
+        names_from_location = list(locations_qs.values('id', 'name').distinct()[:limit])
         seen = set()
         results = []
         for n in names:
-            if n and n not in seen:
-                seen.add(n)
-                results.append({"type": "name", "text": n})
+            nid, ntext = n.get('id'), n.get('name')
+            if ntext and nid and nid not in seen:
+                seen.add(nid)
+                results.append({"type": "name", "id": nid, "text": ntext})
             if len(results) >= limit:
                 break
         if len(results) < limit:
             for n in names_from_location:
-                if n and n not in seen:
-                    seen.add(n)
-                    results.append({"type": "name", "text": n})
+                nid, ntext = n.get('id'), n.get('name')
+                if ntext and nid and nid not in seen:
+                    seen.add(nid)
+                    results.append({"type": "name", "id": nid, "text": ntext})
                 if len(results) >= limit:
                     break
         if len(results) < limit:
