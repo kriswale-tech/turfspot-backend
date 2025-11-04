@@ -18,7 +18,7 @@ router.register(r'purposes', PurposeViewSet)
 router.register(r'facilities', FacilityViewSet)
 
 urlpatterns = [
-    path('', include(router.urls)),
     path('turfs/nearest/', NearestTurfsView.as_view(), name='nearest-turfs'),
     path('turfs/suggest/', SuggestTurfsView.as_view(), name='suggest-turfs'),
+    path('', include(router.urls)),
 ]
