@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from rest_framework.filters import SearchFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Turf, PitchType, GameTime, Purpose, Facility
 from .serializers import (
@@ -52,8 +53,9 @@ class NearestTurfsView(APIView):
 class TurfViewSet(viewsets.ModelViewSet):
     queryset = Turf.objects.all()
     serializer_class = TurfSerializer
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_class = TurfFilter
+    search_fields = ["name", "location"]
     def get_serializer_class(self):
         if self.action == "list":
             return TurfListSerializer
