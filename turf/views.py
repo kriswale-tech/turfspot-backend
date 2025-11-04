@@ -50,6 +50,35 @@ class NearestTurfsView(APIView):
         return Response(data)
 
 
+class SuggestTurfsView(APIView):
+    def get(self, request):
+        q = (request.query_params.get('q') or '').strip()
+        if not q:
+            return Response([])
+        try:
+            limit = int(request.query_params.get('limit', 8))
+        except (TypeError, ValueError):
+            limit = 8
+        names = list(Turf.objects.filter(name__icontains=q).values_list('name', flat=True).distinct()[:limit])
+        locations = list(Turf.objects.filter(location__icontains=q).values_list('location', flat=True).distinct()[:limit])
+        seen = set()
+        results = []
+        for n in names:
+            if n and n not in seen:
+                seen.add(n)
+                results.append({"type": "name", "text": n})
+            if len(results) >= limit:
+                break
+        if len(results) < limit:
+            for loc in locations:
+                if loc and loc not in seen:
+                    seen.add(loc)
+                    results.append({"type": "location", "text": loc})
+                if len(results) >= limit:
+                    break
+        return Response(results)
+
+
 class TurfViewSet(viewsets.ModelViewSet):
     queryset = Turf.objects.all()
     serializer_class = TurfSerializer
