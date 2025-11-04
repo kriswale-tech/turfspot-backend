@@ -60,7 +60,9 @@ class SuggestTurfsView(APIView):
         except (TypeError, ValueError):
             limit = 8
         names = list(Turf.objects.filter(name__icontains=q).values_list('name', flat=True).distinct()[:limit])
-        locations = list(Turf.objects.filter(location__icontains=q).values_list('location', flat=True).distinct()[:limit])
+        locations_qs = Turf.objects.filter(location__icontains=q)
+        locations = list(locations_qs.values_list('location', flat=True).distinct()[:limit])
+        names_from_location = list(locations_qs.values_list('name', flat=True).distinct()[:limit])
         seen = set()
         results = []
         for n in names:
@@ -69,6 +71,13 @@ class SuggestTurfsView(APIView):
                 results.append({"type": "name", "text": n})
             if len(results) >= limit:
                 break
+        if len(results) < limit:
+            for n in names_from_location:
+                if n and n not in seen:
+                    seen.add(n)
+                    results.append({"type": "name", "text": n})
+                if len(results) >= limit:
+                    break
         if len(results) < limit:
             for loc in locations:
                 if loc and loc not in seen:
