@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Turf, PitchType, GameTime, Purpose, Facility, TurfImage, WhatsappNumber, CallNumber
+from cloudinary.utils import cloudinary_url
 
 
 class PitchTypeSerializer(serializers.ModelSerializer):
@@ -34,7 +35,16 @@ class TurfImageSerializer(serializers.ModelSerializer):
         fields = ["id", "image"]
 
     def get_image(self, obj):
-        return obj.image.url if obj.image else None
+        if not obj.image:
+            return None
+        public_id = getattr(obj.image, 'public_id', None)
+        if not public_id:
+            return obj.image.url
+        url, _ = cloudinary_url(public_id, secure=True, transformation=[
+            {"fetch_format": "auto", "quality": "auto"},
+            {"crop": "limit", "width": 1600}
+        ])
+        return url
 
 
 class WhatsappNumberSerializer(serializers.ModelSerializer):
@@ -57,10 +67,10 @@ class TurfSerializer(serializers.ModelSerializer):
     call_numbers = CallNumberSerializer(many=True, read_only=True)
     images = TurfImageSerializer(many=True, read_only=True)
     uploaded_images = serializers.ListField(
-        child=serializers.ImageField(help_text="Upload images (max 2MB per image)"),
+        child=serializers.ImageField(help_text="Images are optimized automatically on delivery"),
         write_only=True,
         required=False,
-        help_text="Upload images (max 2MB per image)"
+        help_text="Images are optimized automatically on delivery"
     )
     class Meta:
         model = Turf
@@ -92,13 +102,7 @@ class TurfSerializer(serializers.ModelSerializer):
 
         return instance
 
-    def validate_uploaded_images(self, value):
-        max_bytes = 2 * 1024 * 1024
-        for f in value:
-            size = getattr(f, "size", None)
-            if size is not None and size > max_bytes:
-                raise serializers.ValidationError("Each image must be 2MB or smaller.")
-        return value
+    # No size validation: we optimize on delivery via Cloudinary transformations
 
 
 class TurfListSerializer(serializers.ModelSerializer):
@@ -111,6 +115,15 @@ class TurfListSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "pitch_type", "location", "latitude", "longitude", "image", "price"]
 
     def get_image(self, obj):
-        # return first image (or None)
+        # return first image (optimized) or None
         first = obj.images.first()
-        return first.image.url if first else None
+        if not first or not first.image:
+            return None
+        public_id = getattr(first.image, 'public_id', None)
+        if not public_id:
+            return first.image.url
+        url, _ = cloudinary_url(public_id, secure=True, transformation=[
+            {"fetch_format": "auto", "quality": "auto"},
+            {"crop": "limit", "width": 800}
+        ])
+        return url

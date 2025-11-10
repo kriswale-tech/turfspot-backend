@@ -10,25 +10,14 @@ class TurfImageAdminForm(forms.ModelForm):
         model = TurfImage
         fields = "__all__"
         help_texts = {
-            "image": "Upload images (max 2MB per image)",
+            "image": "Images are optimized automatically on delivery",
         }
-
-    def clean_image(self):
-        img = self.cleaned_data.get("image")
-        if hasattr(img, "size") and img.size is not None:
-            if img.size > 2 * 1024 * 1024:
-                raise forms.ValidationError("Each image must be 2MB or smaller.")
-        return img
 
 
 class TurfImageInline(admin.StackedInline):  # use StackedInline to show help_text
     model = TurfImage
     extra = 1
     form = TurfImageAdminForm
-    class Media:
-        js = (
-            'turf/image_size_validator.js',
-        )
 
 
 class WhatsappNumberInline(admin.TabularInline):
