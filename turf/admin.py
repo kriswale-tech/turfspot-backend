@@ -3,6 +3,9 @@ from .models import Turf, PitchType, GameTime, Purpose, Facility, TurfImage, Wha
 from django import forms
 from django.utils.safestring import mark_safe
 from django.conf import settings
+from PIL import Image
+from io import BytesIO
+from django.core.files.uploadedfile import InMemoryUploadedFile
 
 
 class TurfImageAdminForm(forms.ModelForm):
@@ -12,6 +15,53 @@ class TurfImageAdminForm(forms.ModelForm):
         help_texts = {
             "image": "Images are optimized automatically on delivery",
         }
+
+    def clean_image(self):
+        img_file = self.cleaned_data.get("image")
+        if not img_file:
+            return img_file
+        try:
+            try:
+                img_file.seek(0)
+            except Exception:
+                pass
+            img = Image.open(img_file)
+            img_format = (img.format or 'JPEG').upper()
+            if img_format not in ("JPEG", "JPG", "PNG", "WEBP"):
+                img_format = "JPEG"
+            if img.mode in ("RGBA", "P") and img_format in ("JPEG", "JPG"):
+                img = img.convert("RGB")
+            # Resize to reasonable width for admin uploads
+            max_width = 2000
+            w, h = img.size
+            if w > max_width:
+                ratio = max_width / float(w)
+                img = img.resize((int(w * ratio), int(h * ratio)), Image.LANCZOS)
+            # Compress to fit under ~10MB
+            max_bytes = 10 * 1024 * 1024
+            quality = 85
+            min_quality = 60
+            buf = BytesIO()
+            img.save(buf, format="JPEG" if img_format in ("JPEG", "JPG") else img_format, optimize=True, quality=quality)
+            while buf.tell() > max_bytes and quality > min_quality:
+                quality -= 5
+                buf.seek(0)
+                buf.truncate()
+                img.save(buf, format="JPEG" if img_format in ("JPEG", "JPG") else img_format, optimize=True, quality=quality)
+            buf.seek(0)
+            filename = getattr(img_file, 'name', f'upload.{img_format.lower()}')
+            content_type = 'image/jpeg' if img_format in ("JPEG", "JPG") else f'image/{img_format.lower()}'
+            return InMemoryUploadedFile(
+                buf,
+                field_name=None,
+                name=filename,
+                content_type=content_type,
+                size=buf.getbuffer().nbytes,
+                charset=None
+            )
+        except Exception:
+            # If compression fails, return original to avoid blocking admin
+            return img_file
 
 
 class TurfImageInline(admin.StackedInline):  # use StackedInline to show help_text

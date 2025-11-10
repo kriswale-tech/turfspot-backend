@@ -1,6 +1,10 @@
 from rest_framework import serializers
 from .models import Turf, PitchType, GameTime, Purpose, Facility, TurfImage, WhatsappNumber, CallNumber
 from cloudinary.utils import cloudinary_url
+from PIL import Image
+from io import BytesIO
+from django.core.files.uploadedfile import InMemoryUploadedFile
+import sys
 
 
 class PitchTypeSerializer(serializers.ModelSerializer):
@@ -81,11 +85,57 @@ class TurfSerializer(serializers.ModelSerializer):
             "call_numbers", "images", "uploaded_images", "created_at"
         ]
 
+    def _compress_image(self, file_obj, max_width=2000, max_bytes=10 * 1024 * 1024):
+        try:
+            file_obj.seek(0)
+        except Exception:
+            pass
+        img = Image.open(file_obj)
+        img_format = (img.format or 'JPEG').upper()
+        if img_format not in ("JPEG", "JPG", "PNG", "WEBP"):
+            img_format = "JPEG"
+        # Convert to RGB for JPEG/WEBP if needed
+        if img.mode in ("RGBA", "P") and img_format in ("JPEG", "JPG"):
+            img = img.convert("RGB")
+        # Resize if wider than max_width
+        w, h = img.size
+        if w > max_width:
+            ratio = max_width / float(w)
+            new_size = (int(w * ratio), int(h * ratio))
+            img = img.resize(new_size, Image.LANCZOS)
+        # Iteratively reduce quality to fit under max_bytes
+        quality = 85
+        min_quality = 60
+        buffer = BytesIO()
+        img.save(buffer, format="JPEG" if img_format in ("JPEG", "JPG") else img_format, optimize=True, quality=quality)
+        while buffer.tell() > max_bytes and quality > min_quality:
+            quality -= 5
+            buffer.seek(0)
+            buffer.truncate()
+            img.save(buffer, format="JPEG" if img_format in ("JPEG", "JPG") else img_format, optimize=True, quality=quality)
+        buffer.seek(0)
+        # Build InMemoryUploadedFile
+        filename = getattr(file_obj, 'name', f'upload.{img_format.lower()}')
+        content_type = 'image/jpeg' if img_format in ("JPEG", "JPG") else f'image/{img_format.lower()}'
+        compressed_file = InMemoryUploadedFile(
+            buffer,
+            field_name=None,
+            name=filename,
+            content_type=content_type,
+            size=buffer.getbuffer().nbytes,
+            charset=None
+        )
+        return compressed_file
+
     def create(self, validated_data):
         uploaded_images = validated_data.pop("uploaded_images", [])
         turf = super().create(validated_data)
 
         for image in uploaded_images:
+            try:
+                image = self._compress_image(image)
+            except Exception:
+                pass
             TurfImage.objects.create(turf=turf, image=image)
 
         return turf
@@ -98,6 +148,10 @@ class TurfSerializer(serializers.ModelSerializer):
             # optional: clear old images
             instance.images.all().delete()
             for image in uploaded_images:
+                try:
+                    image = self._compress_image(image)
+                except Exception:
+                    pass
                 TurfImage.objects.create(turf=instance, image=image)
 
         return instance
