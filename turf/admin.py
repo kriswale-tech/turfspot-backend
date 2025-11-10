@@ -25,6 +25,10 @@ class TurfImageInline(admin.StackedInline):  # use StackedInline to show help_te
     model = TurfImage
     extra = 1
     form = TurfImageAdminForm
+    class Media:
+        js = (
+            'turf/image_size_validator.js',
+        )
 
 
 class WhatsappNumberInline(admin.TabularInline):
