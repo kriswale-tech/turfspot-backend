@@ -56,7 +56,12 @@ class TurfSerializer(serializers.ModelSerializer):
     whatsapp_numbers = WhatsappNumberSerializer(many=True, read_only=True)
     call_numbers = CallNumberSerializer(many=True, read_only=True)
     images = TurfImageSerializer(many=True, read_only=True)
-    uploaded_images = serializers.ListField(child=serializers.ImageField(), write_only=True, required=False)
+    uploaded_images = serializers.ListField(
+        child=serializers.ImageField(help_text="Upload images (max 2MB per image)"),
+        write_only=True,
+        required=False,
+        help_text="Upload images (max 2MB per image)"
+    )
     class Meta:
         model = Turf
         fields = [
@@ -86,6 +91,14 @@ class TurfSerializer(serializers.ModelSerializer):
                 TurfImage.objects.create(turf=instance, image=image)
 
         return instance
+
+    def validate_uploaded_images(self, value):
+        max_bytes = 2 * 1024 * 1024
+        for f in value:
+            size = getattr(f, "size", None)
+            if size is not None and size > max_bytes:
+                raise serializers.ValidationError("Each image must be 2MB or smaller.")
+        return value
 
 
 class TurfListSerializer(serializers.ModelSerializer):

@@ -5,9 +5,26 @@ from django.utils.safestring import mark_safe
 from django.conf import settings
 
 
-class TurfImageInline(admin.TabularInline):  # or StackedInline
+class TurfImageAdminForm(forms.ModelForm):
+    class Meta:
+        model = TurfImage
+        fields = "__all__"
+        help_texts = {
+            "image": "Upload images (max 2MB per image)",
+        }
+
+    def clean_image(self):
+        img = self.cleaned_data.get("image")
+        if hasattr(img, "size") and img.size is not None:
+            if img.size > 2 * 1024 * 1024:
+                raise forms.ValidationError("Each image must be 2MB or smaller.")
+        return img
+
+
+class TurfImageInline(admin.StackedInline):  # use StackedInline to show help_text
     model = TurfImage
     extra = 1
+    form = TurfImageAdminForm
 
 
 class WhatsappNumberInline(admin.TabularInline):
