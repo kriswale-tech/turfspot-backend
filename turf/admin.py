@@ -70,13 +70,66 @@ class TurfImageInline(admin.StackedInline):  # use StackedInline to show help_te
     form = TurfImageAdminForm
 
 
+class WhatsappNumberThroughForm(forms.ModelForm):
+    number = forms.CharField(required=True, label="Number")
+
+    class Meta:
+        model = Turf.whatsapp_numbers.through
+        exclude = ("whatsappnumber",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and getattr(self.instance, "whatsappnumber_id", None):
+            try:
+                self.fields["number"].initial = self.instance.whatsappnumber.number
+            except WhatsappNumber.DoesNotExist:  # pragma: no cover
+                pass
+
+    def save(self, commit=True):
+        num = self.cleaned_data.get("number")
+        if num is not None:
+            obj, _ = WhatsappNumber.objects.get_or_create(number=num)
+            self.instance.whatsappnumber = obj
+        return super().save(commit=commit)
+
+
 class WhatsappNumberInline(admin.TabularInline):
     model = Turf.whatsapp_numbers.through
+    form = WhatsappNumberThroughForm
     extra = 1
+    verbose_name = "WhatsApp number"
+    verbose_name_plural = "WhatsApp numbers"
+
+
+class CallNumberThroughForm(forms.ModelForm):
+    number = forms.CharField(required=True, label="Number")
+
+    class Meta:
+        model = Turf.call_numbers.through
+        exclude = ("callnumber",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and getattr(self.instance, "callnumber_id", None):
+            try:
+                self.fields["number"].initial = self.instance.callnumber.number
+            except CallNumber.DoesNotExist:  # pragma: no cover
+                pass
+
+    def save(self, commit=True):
+        num = self.cleaned_data.get("number")
+        if num is not None:
+            obj, _ = CallNumber.objects.get_or_create(number=num)
+            self.instance.callnumber = obj
+        return super().save(commit=commit)
+
 
 class CallNumberInline(admin.TabularInline):
     model = Turf.call_numbers.through
+    form = CallNumberThroughForm
     extra = 1
+    verbose_name = "Call number"
+    verbose_name_plural = "Call numbers"
 
 
 class TurfAdminForm(forms.ModelForm):
@@ -88,8 +141,8 @@ class TurfAdminForm(forms.ModelForm):
 class TurfAdmin(admin.ModelAdmin):
     form = TurfAdminForm
     list_display = ("name", "pitch_type", "price_per_hour", "location", "latitude", "longitude", "created_at")
-    inlines = [TurfImageInline]
-    #exclude = ("whatsapp_numbers", "call_numbers")
+    inlines = [TurfImageInline, WhatsappNumberInline, CallNumberInline]
+    exclude = ("whatsapp_numbers", "call_numbers")
 
     readonly_fields = ("location_map",)
 
@@ -103,8 +156,6 @@ class TurfAdmin(admin.ModelAdmin):
                 "game_time",
                 "purposes",
                 "facilities",
-                "whatsapp_numbers",
-                "call_numbers",
                 "location",
                 "map_link",
                 "location_map",  # interactive map
