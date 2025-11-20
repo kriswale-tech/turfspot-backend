@@ -70,78 +70,48 @@ class TurfImageInline(admin.StackedInline):  # use StackedInline to show help_te
     form = TurfImageAdminForm
 
 
-class WhatsappNumberThroughForm(forms.ModelForm):
-    number = forms.CharField(required=True, label="Number")
-
-    class Meta:
-        model = Turf.whatsapp_numbers.through
-        exclude = ("whatsappnumber",)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance and getattr(self.instance, "whatsappnumber_id", None):
-            try:
-                self.fields["number"].initial = self.instance.whatsappnumber.number
-            except WhatsappNumber.DoesNotExist:  # pragma: no cover
-                pass
-
-    def save(self, commit=True):
-        num = self.cleaned_data.get("number")
-        if num is not None:
-            obj, _ = WhatsappNumber.objects.get_or_create(number=num)
-            self.instance.whatsappnumber = obj
-        return super().save(commit=commit)
-
-
-class WhatsappNumberInline(admin.TabularInline):
-    model = Turf.whatsapp_numbers.through
-    form = WhatsappNumberThroughForm
-    extra = 1
-    verbose_name = "WhatsApp number"
-    verbose_name_plural = "WhatsApp numbers"
-
-
-class CallNumberThroughForm(forms.ModelForm):
-    number = forms.CharField(required=True, label="Number")
-
-    class Meta:
-        model = Turf.call_numbers.through
-        exclude = ("callnumber",)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance and getattr(self.instance, "callnumber_id", None):
-            try:
-                self.fields["number"].initial = self.instance.callnumber.number
-            except CallNumber.DoesNotExist:  # pragma: no cover
-                pass
-
-    def save(self, commit=True):
-        num = self.cleaned_data.get("number")
-        if num is not None:
-            obj, _ = CallNumber.objects.get_or_create(number=num)
-            self.instance.callnumber = obj
-        return super().save(commit=commit)
-
-
-class CallNumberInline(admin.TabularInline):
-    model = Turf.call_numbers.through
-    form = CallNumberThroughForm
-    extra = 1
-    verbose_name = "Call number"
-    verbose_name_plural = "Call numbers"
+def _split_numbers(raw: str):
+    if not raw:
+        return []
+    # split by comma or newline and strip
+    parts = [p.strip() for p in raw.replace("\r", "").replace(",", "\n").split("\n")]
+    return [p for p in parts if p]
 
 
 class TurfAdminForm(forms.ModelForm):
+    whatsapp_numbers_text = forms.CharField(
+        required=False,
+        label="WhatsApp numbers",
+        help_text="Enter numbers separated by comma or new lines",
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+    call_numbers_text = forms.CharField(
+        required=False,
+        label="Call numbers",
+        help_text="Enter numbers separated by comma or new lines",
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+
     class Meta:
         model = Turf
         fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        instance = getattr(self, "instance", None)
+        if instance and instance.pk:
+            self.fields["whatsapp_numbers_text"].initial = "\n".join(
+                instance.whatsapp_numbers.values_list("number", flat=True)
+            )
+            self.fields["call_numbers_text"].initial = "\n".join(
+                instance.call_numbers.values_list("number", flat=True)
+            )
 
 @admin.register(Turf)
 class TurfAdmin(admin.ModelAdmin):
     form = TurfAdminForm
     list_display = ("name", "pitch_type", "price_per_hour", "location", "latitude", "longitude", "created_at")
-    inlines = [TurfImageInline, WhatsappNumberInline, CallNumberInline]
+    inlines = [TurfImageInline]
     exclude = ("whatsapp_numbers", "call_numbers")
 
     readonly_fields = ("location_map",)
@@ -157,6 +127,8 @@ class TurfAdmin(admin.ModelAdmin):
                 "purposes",
                 "facilities",
                 "location",
+                "whatsapp_numbers_text",
+                "call_numbers_text",
                 "map_link",
                 "location_map",  # interactive map
                 "latitude",
@@ -196,6 +168,19 @@ class TurfAdmin(admin.ModelAdmin):
         js = (
             'turf/location_picker.js',
         )
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        # Save WhatsApp numbers
+        wa_numbers = [_ for _ in _split_numbers(form.cleaned_data.get("whatsapp_numbers_text", ""))]
+        if wa_numbers is not None:
+            wa_objs = [WhatsappNumber.objects.get_or_create(number=n)[0] for n in wa_numbers]
+            obj.whatsapp_numbers.set(wa_objs)
+        # Save Call numbers
+        call_numbers = [_ for _ in _split_numbers(form.cleaned_data.get("call_numbers_text", ""))]
+        if call_numbers is not None:
+            call_objs = [CallNumber.objects.get_or_create(number=n)[0] for n in call_numbers]
+            obj.call_numbers.set(call_objs)
 
 
 @admin.register(PitchType)
